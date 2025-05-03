@@ -6,17 +6,19 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
 public class Main extends ApplicationAdapter {
+	// Sprite batch textured planes 
     private SpriteBatch batch;
+    
+    // Player & Camera 
     private Texture image;
     Player player;
-    private OrthographicCamera camera;
+    Camera camera;
     
     // Enemies
     Texture imageEnemy;
@@ -26,15 +28,16 @@ public class Main extends ApplicationAdapter {
     boolean gameOver = false;
     BitmapFont font;
     
-    // Add platforms
+    // Platforms 
     Texture imagePlatform001;
     ArrayList<Platform> platforms;
 
     @Override
     public void create() {
+    	// Initialize new Sprite Batch 
         batch = new SpriteBatch();
         
-        // create platforms
+        // Create platforms
         imagePlatform001 = new Texture("platform001.png");
         platforms = new ArrayList<>();
         
@@ -43,13 +46,12 @@ public class Main extends ApplicationAdapter {
         platforms.add(new Platform(700, 250, 200, 20, imagePlatform001));
         platforms.add(new Platform(1000, 350, 200, 20, imagePlatform001));
         
-        // create player
+        // Create player & Camera
         image = new Texture("mega.png");
         player = new Player(image, new Vector2(100, 100), platforms);
-        camera = new OrthographicCamera();
-        camera.setToOrtho(false, 800, 480);
+        camera = new Camera(800, 480, 2000, 800);
         
-        // create enemies
+        // Create enemies
         imageEnemy = new Texture("dog.png");
         enemies = new ArrayList<>();
         
@@ -63,12 +65,13 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void render() {
+    	// Update screen 
     	update(Gdx.graphics.getDeltaTime());
     	
     	Gdx.gl.glClearColor(0, 0, 0, 1);
     	Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     	
-    	batch.setProjectionMatrix(camera.combined);
+    	batch.setProjectionMatrix(camera.getCamera().combined);
     	batch.begin();
     	
     	// Draw player
@@ -88,14 +91,14 @@ public class Main extends ApplicationAdapter {
     	
     	// Draw game over
     	if (gameOver) {
-    		font.draw(batch,  "GAME OVER - Press R to restart", camera.position.x, camera.position.y);
+    		font.draw(batch,  "GAME OVER - Press R to restart", camera.getCamera().position.x - 100, camera.getCamera().position.y);
     	}
 
         batch.end();
     }
     
     public void update(float delta) {
-    	// update game over
+    	// Update game over
     	if (gameOver) {
     		if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
     			restartGame();
@@ -103,21 +106,23 @@ public class Main extends ApplicationAdapter {
     		return;
     	}
     	
+    	// Update input & player 
     	handleInput();
     	player.update(delta);
     	
     	EnemyManager.playerPosition = new Vector2(player.getX(), player.getY());
     	
-    	camera.update();
-    	
-    	// update enemies 
+    	// Update camera 
+    	camera.update(player.getX() + player.getWidth() / 2, player.getY() + player.getHeight() / 2);
+
+    	// Update enemies 
     	for (Enemy e: enemies) {
     		if (e.isActive()) {
     			e.update(delta);
     		}
     	}
     	
-    	// update player shooting enemies & collision 
+    	// Update player shooting enemies & collision 
     	for (Enemy e: enemies) {
     		if (!e.isActive()) continue;
     		
