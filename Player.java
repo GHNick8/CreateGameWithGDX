@@ -1,5 +1,7 @@
 package com.mygdx.game;
 
+import java.util.ArrayList;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
@@ -18,10 +20,18 @@ public class Player {
 	int playerHealth = 5;
 	public boolean playerAlive = true;
 	
+	// Shooting logic
+	ArrayList<Bullet> bullets = new ArrayList<>();
+	Texture imageBullet = new Texture("shoot01.png");
+	
+	// Platform logic
+	ArrayList<Platform> platforms;
+	
 	// Constructor player
-	public Player(Texture texture, Vector2 position) {
+	public Player(Texture texture, Vector2 startPosition, ArrayList<Platform> platforms) {
 		this.texture = texture;
-		this.position = position;
+		this.position = startPosition;
+		this.platforms = platforms;
 	}
 	
 	public Rectangle getBounds() {
@@ -43,10 +53,46 @@ public class Player {
 		position.y += velocityY * delta;
 		
 		// Ground collision
-		if (position.y < 0) {
+		boolean onPlatform = false;
+
+		for (Platform p : platforms) {
+		    if (position.y > p.getBounds().y + p.getBounds().height - 1) {
+		        if (position.x + texture.getWidth() > p.getBounds().x &&
+		            position.x < p.getBounds().x + p.getBounds().width) {
+
+		            if (position.y + velocityY * delta <= p.getBounds().y + p.getBounds().height) {
+		                // Landed on platform
+		                position.y = p.getBounds().y + p.getBounds().height;
+		                velocityY = 0;
+		                tripleJump = 3;
+		                onPlatform = true;
+		                break;
+		            }
+		        }
+		    }
+		}
+
+		// Ground check
+		if (!onPlatform && position.y <= 0) {
+		    position.y = 0;
+		    velocityY = 0;
+		    tripleJump = 3;
+		}
+
+		
+		/*if (position.y < 0) {
 			position.y = 0;
 			velocityY = 0;
 			tripleJump = 3;
+		}*/
+		
+		// update bullets
+		for (int i = bullets.size() - 1; i >= 0; i--) {
+			Bullet b = bullets.get(i);
+			b.update(delta);
+			if (!b.isActive()) {
+				bullets.remove(i);
+			}
 		}
 	}
 	
@@ -63,10 +109,32 @@ public class Player {
 			velocityY = 300;
 			tripleJump--;
 		}
+		
+		// Shooting logic 
+		int shootX = 0;
+		int shootY = 0;
+		
+		if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) shootX = -1;
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) shootX = 1;
+        if (Gdx.input.isKeyPressed(Input.Keys.UP)) shootY = 1;
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) shootY = -1;
+		
+		if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+			Vector2 shootDir = new Vector2(shootX, shootY);
+			if (shootDir.isZero()) {
+				shootDir.x = 1;
+			}
+			bullets.add(new Bullet(imageBullet, new Vector2(position.x + texture.getWidth() / 2, position.y + texture.getHeight() / 2), shootDir));
+		}
 	}
 	
 	public void draw(SpriteBatch batch) {
 		batch.draw(texture, position.x, position.y);
+		
+		// Draw bullets
+		for (Bullet b: bullets) {
+			b.draw(batch);
+		}
 	}
 	
 	public float getX() {

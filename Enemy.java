@@ -10,6 +10,9 @@ public class Enemy {
 	Texture texture;
 	boolean active = true;
 	
+	// Health logic
+	int enemyHealth = 7;
+	
 	public Enemy(Texture texture, Vector2 position) {
 		this.texture = texture;
 		this.position = position;
@@ -21,6 +24,11 @@ public class Enemy {
 	
 	public void draw(SpriteBatch batch) {
 		batch.draw(texture, position.x, position.y);
+		
+		// Draw health bar for testing purposes 
+		for (int i = 0; i < enemyHealth; i++) {
+			batch.draw(texture, position.x + i * 8, position.y + texture.getHeight() + 5, 6, 6);
+		}
 	}
 	
 	public Rectangle getBounds() {
@@ -29,5 +37,12 @@ public class Enemy {
 	
 	public boolean isActive() {
 		return active;
+	}
+	
+	public void hit() {
+		enemyHealth--;
+		if (enemyHealth <= 0) {
+			active = false;
+		}
 	}
 }
