@@ -46,7 +46,15 @@ public class Main extends ApplicationAdapter {
         platforms.add(new Platform(700, 250, 200, 20, imagePlatform001));
         platforms.add(new Platform(1000, 350, 200, 20, imagePlatform001));
         
-        // Create player & Camera
+        // Add & Create moving platforms 
+        Platform movingPlatform001 = new Platform(500, 200, 200, 20, imagePlatform001);
+        Platform movingPlatform002 = new Platform(700, 50, 100, 50, imagePlatform001);
+        movingPlatform001.setMoving(100, 150); 
+        movingPlatform002.setMoving(200, 250);
+        platforms.add(movingPlatform001);
+        platforms.add(movingPlatform002);
+        
+        // Create player & Camera 
         image = new Texture("mega.png");
         player = new Player(image, new Vector2(100, 100), platforms);
         camera = new Camera(800, 480, 2000, 800);
@@ -55,9 +63,14 @@ public class Main extends ApplicationAdapter {
         imageEnemy = new Texture("dog.png");
         enemies = new ArrayList<>();
         
-        // Add some enemies 
-        enemies.add(new Enemy(imageEnemy, new Vector2(500, 200)));
-        enemies.add(new Enemy(imageEnemy, new Vector2(600, 100)));
+        // Add moving enemies 
+        Enemy e = new Enemy(imageEnemy, new Vector2(600, 300), 550, 650);
+        e.setMoving(60, 100, false); // Horizontal moving enemy
+        enemies.add(e);
+        
+        // Add still enemies 
+        enemies.add(new Enemy(imageEnemy, new Vector2(500, 200), 500, 200));
+        enemies.add(new Enemy(imageEnemy, new Vector2(600, 100), 600, 100));
         
         // Add game over
         font = new BitmapFont();
@@ -75,7 +88,9 @@ public class Main extends ApplicationAdapter {
     	batch.begin();
     	
     	// Draw player
-    	player.draw(batch);
+    	if (!gameOver) {
+    	    player.draw(batch);
+    	}
     	
     	// Draw enemies
     	for (Enemy e: enemies) {
@@ -134,6 +149,27 @@ public class Main extends ApplicationAdapter {
     			}
     		}
     	}
+    	
+    	// Update enemy disposing player & collision 
+    	for (Enemy e : enemies) {
+            if (!e.isActive()) continue;
+
+            for (EnemyBullet b : e.bullets) {
+                if (b.isActive() && player.getBounds().contains(b.position)) {
+                    b.active = false;
+                    player.takeDamage();
+                    if (!player.playerAlive) {
+                        gameOver = true;
+                    }
+                    break; 
+                }
+            }
+        }
+    	
+    	// Update platforms
+    	for (Platform p: platforms) {
+    		p.update(delta);
+    	}
     }
     
     private void handleInput() {
@@ -148,8 +184,8 @@ public class Main extends ApplicationAdapter {
     	
     	// Reset enemies
     	enemies.clear();
-    	enemies.add(new Enemy(imageEnemy, new Vector2(500, 200)));
-        enemies.add(new Enemy(imageEnemy, new Vector2(600, 100)));
+        enemies.add(new Enemy(imageEnemy, new Vector2(500, 200), 500, 200));
+        enemies.add(new Enemy(imageEnemy, new Vector2(600, 100), 600, 100));
         
         // Reset game over
         gameOver  = false;

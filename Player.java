@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 public class Player {
+	// Player logic
 	Texture texture;
 	Vector2 position;
 	float speed = 300f;
@@ -61,32 +62,27 @@ public class Player {
 		            position.x < p.getBounds().x + p.getBounds().width) {
 
 		            if (position.y + velocityY * delta <= p.getBounds().y + p.getBounds().height) {
-		                // Landed on platform
 		                position.y = p.getBounds().y + p.getBounds().height;
 		                velocityY = 0;
 		                tripleJump = 3;
 		                onPlatform = true;
+		                if (p.moving) {
+		                    position.x += p.moveSpeed * p.direction * delta;
+		                }
 		                break;
 		            }
 		        }
 		    }
 		}
 
-		// Ground check
+		// Ground collision if not on platform 
 		if (!onPlatform && position.y <= 0) {
 		    position.y = 0;
 		    velocityY = 0;
 		    tripleJump = 3;
 		}
-
 		
-		/*if (position.y < 0) {
-			position.y = 0;
-			velocityY = 0;
-			tripleJump = 3;
-		}*/
-		
-		// update bullets
+		// Update bullets
 		for (int i = bullets.size() - 1; i >= 0; i--) {
 			Bullet b = bullets.get(i);
 			b.update(delta);
