@@ -9,11 +9,11 @@ public class Platform {
 	Texture texture;
 	
 	// Movement
-	boolean moving = false;
-	float moveSpeed = 100f;
+	public boolean moving = false;
+	public float moveSpeed = 100f;
 	float moveDistance = 100f;
 	float startX, startY;
-	int direction = 1; // if not - replace with -1
+	public int direction = 1; // if not - replace with -1
 
 	public Platform(float x, float y, float width, float height, Texture texture) {
 		this.bounds = new Rectangle(x, y, width, height);

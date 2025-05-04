@@ -1,4 +1,4 @@
-package com.mygdx.game;
+package com.mygdx.game.entity;
 
 import java.util.ArrayList;
 
@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.mygdx.game.EnemyBullet;
+import com.mygdx.game.manager.EnemyManager;
 
 public class Enemy {
 	// Enemy logic
@@ -25,7 +27,7 @@ public class Enemy {
     boolean moveVertical = false;
     
 	// Shooting logic 
-	ArrayList<EnemyBullet> bullets = new ArrayList<>();
+	public ArrayList<EnemyBullet> bullets = new ArrayList<>();
 	Texture bulletTexture = new Texture("shoot01.png");
 	float shootTimer = 0;
 	float shootInterval = 2.0f; 

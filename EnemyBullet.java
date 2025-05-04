@@ -5,10 +5,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 
 public class EnemyBullet {
-	Vector2 position;
+	public Vector2 position;
 	Vector2 velocity;
 	Texture texture;
-	boolean active = true;
+	public boolean active = true;
 	
 	public EnemyBullet(Texture texture, Vector2 startPosition, Vector2 direction) {
 		this.texture = texture;

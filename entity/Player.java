@@ -1,34 +1,51 @@
-package com.mygdx.game;
+package com.mygdx.game.entity;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.mygdx.game.Bullet;
+import com.mygdx.game.Platform;
+import com.mygdx.game.weapon.DefaultWeapon;
+import com.mygdx.game.weapon.LaserWeapon;
+import com.mygdx.game.weapon.SpreadWeapon;
+import com.mygdx.game.weapon.Weapon;
 
 import java.util.ArrayList;
 
 public class Player {
 
-    Vector2 position;
-    Texture texture;
+    public Vector2 position;
+    public Texture texture;
 
     float velocityY = 0;
     final float GRAVITY = -600;
 
-    ArrayList<Bullet> bullets = new ArrayList<>();
+    public ArrayList<Bullet> bullets = new ArrayList<>();
 
     ArrayList<Platform> platforms;
 
     int tripleJump = 3;
 
-    int playerHealth = 5;
-    boolean playerAlive = true;
+    public int playerHealth = 5;
+    public boolean playerAlive = true;
+    
+    Weapon[] weapons;
+    int currentWeaponIndex = 0;
 
     public Player(Texture texture, Vector2 startPosition, ArrayList<Platform> platforms) {
         this.texture = texture;
         this.position = startPosition;
         this.platforms = platforms;
+        
+        weapons = new Weapon[] {
+        		new DefaultWeapon(this),
+        		new SpreadWeapon(this),
+        		new LaserWeapon(this)
+        };
+        
+        currentWeaponIndex = 0;
 
         // Make sure player starts alive + full health
         this.playerHealth = 5;
@@ -121,14 +138,25 @@ public class Player {
 
         Vector2 shootDir = new Vector2(shootX, shootY);
         if (shootDir.isZero()) {
-            shootDir = new Vector2(1, 0); // Default to right
+            shootDir.set(1, 0);
         } else {
-            shootDir.nor();
+            shootDir.nor();  
         }
 
-        bullets.add(new Bullet(new Texture("shoot01.png"),
-                new Vector2(position.x + texture.getWidth() / 2, position.y + texture.getHeight() / 2),
-                shootDir));
+        weapons[currentWeaponIndex].shoot(shootDir, bullets);
+    }
+    
+    public void switchWeapon(boolean next) {
+    	if (next) {
+    		currentWeaponIndex = (currentWeaponIndex + 1) % weapons.length;
+    	} else {
+    		currentWeaponIndex--;
+            if (currentWeaponIndex < 0) currentWeaponIndex = weapons.length - 1;
+    	}
+    }
+    
+    public String getWeaponName() {
+        return weapons[currentWeaponIndex].getName();
     }
 
     public Rectangle getBounds() {

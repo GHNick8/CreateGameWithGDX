@@ -17,11 +17,16 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.mygdx.game.entity.Enemy;
+import com.mygdx.game.entity.Player;
+import com.mygdx.game.manager.HUDManager;
+import com.mygdx.game.state.GameState;
+import com.mygdx.game.state.TitleState;
 
 import java.util.ArrayList;
 
 public class Main extends ApplicationAdapter {
-
+	
     SpriteBatch batch;
     Texture playerTexture;
     Texture platformTexture;
@@ -33,13 +38,27 @@ public class Main extends ApplicationAdapter {
 
     TiledMap map;
     OrthogonalTiledMapRenderer mapRenderer;
-    OrthographicCamera camera;
+    public OrthographicCamera camera;
 
-    BitmapFont font;
+    public BitmapFont font;
     boolean gameOver = false;
+    
+    GameState currentState;
+    
+    HandleInput handleInput;
+    
+    HUDManager hudManager;
+    
+    public static Texture bulletTexture;
+    
+    public void setState(GameState newState) {
+        currentState = newState;
+    }
 
     @Override
     public void create() {
+    	bulletTexture = new Texture("shoot01.png");
+    	
         batch = new SpriteBatch();
         playerTexture = new Texture("mega.png");
         platformTexture = new Texture("platform001.png");
@@ -47,6 +66,8 @@ public class Main extends ApplicationAdapter {
         map = new TmxMapLoader().load("test.tmx");
         mapRenderer = new OrthogonalTiledMapRenderer(map);
         platforms = new ArrayList<>();
+        hudManager = new HUDManager(this);
+        
         float playerSpawnX = 100;
         float playerSpawnY = 100;
 
@@ -82,6 +103,8 @@ public class Main extends ApplicationAdapter {
         platforms.add(movingPlatform);
 
         player = new Player(playerTexture, new Vector2(playerSpawnX, playerSpawnY), platforms);
+        
+        handleInput = new HandleInput(player);
 
         enemies = new ArrayList<>();
 
@@ -99,6 +122,8 @@ public class Main extends ApplicationAdapter {
         font = new BitmapFont();
         font.setColor(Color.WHITE);
         font.getData().setScale(2);
+        
+        setState(new TitleState(this));
     }
 
     public void update(float delta) {
@@ -110,7 +135,7 @@ public class Main extends ApplicationAdapter {
             return;
         }
 
-        handleInput();
+        handleInput.update();
         player.update(delta);
 
         float targetX = player.getX() + player.getWidth() / 2;
@@ -164,52 +189,79 @@ public class Main extends ApplicationAdapter {
         }
     }
 
-    public void handleInput() {
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            player.moveLeft();
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            player.moveRight();
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-            player.jump();
-        }
-        
-        float shootX = 0;
-        float shootY = 0;
-
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            shootX = -1;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            shootX = 1;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            shootY = 1;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            shootY = -1;
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            player.shoot(shootX, shootY);
-        }
-    }
-
     public void restartGame() {
         player = new Player(playerTexture, new Vector2(100, 100), platforms);
         gameOver = false;
     }
+    
+    public void updateGameLogic() {
+    	if (gameOver) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                restartGame();
+            }
+            return;
+        }
 
-    @Override
-    public void render() {
-        update(Gdx.graphics.getDeltaTime());
+    	handleInput.update();
+        player.update(Gdx.graphics.getDeltaTime());
 
-        Gdx.gl.glClearColor(0, 0, 0, 1);
+        float targetX = player.getX() + player.getWidth() / 2;
+        float targetY = player.getY() + player.getHeight() / 2;
+        camera.position.x += (targetX - camera.position.x) * 0.1f;
+        camera.position.y += (targetY - camera.position.y) * 0.1f;
+
+        float levelWidth = 2000;
+        float levelHeight = 800;
+        float halfW = camera.viewportWidth / 2;
+        float halfH = camera.viewportHeight / 2;
+
+        camera.position.x = Math.max(halfW, Math.min(camera.position.x, levelWidth - halfW));
+        camera.position.y = Math.max(halfH, Math.min(camera.position.y, levelHeight - halfH));
+        camera.update();
+
+        for (Enemy e : enemies) {
+            if (e.isActive()) {
+                e.update(Gdx.graphics.getDeltaTime());
+
+                for (EnemyBullet b : e.bullets) {
+                    if (b.isActive() && player.getBounds().contains(b.position)) {
+                        b.active = false;
+                        player.takeDamage();
+                        if (!player.playerAlive) gameOver = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (Enemy e : enemies) {
+            if (!e.isActive()) continue;
+
+            for (int i = player.bullets.size() - 1; i >= 0; i--) {
+                Bullet b = player.bullets.get(i);
+
+                if (e.getBounds().overlaps(new Rectangle(b.position.x, b.position.y, 8, 8))) {
+                    e.hit();
+                    b.active = false;
+                    player.bullets.remove(i);
+                    break;
+                }
+            }
+        }
+
+        for (Platform p : platforms) {
+            p.update(Gdx.graphics.getDeltaTime());
+        }
+    }
+
+    public void renderGame(SpriteBatch batch) {
+    	Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+        
+        hudManager.render(batch, camera.position, player);
 
         mapRenderer.setView(camera);
         mapRenderer.render();
@@ -218,21 +270,49 @@ public class Main extends ApplicationAdapter {
             p.draw(batch);
         }
 
+        // Draw enemies
+        for (Enemy e : enemies) {
+            if (e.isActive()) {
+                e.draw(batch);
+
+                // Draw enemy bullets
+                for (EnemyBullet b : e.bullets) {
+                    if (b.isActive()) {
+                        b.draw(batch);
+                    }
+                }
+            }
+        }
+
+        // Draw player
         if (!gameOver) {
             player.draw(batch);
         }
 
-        for (Enemy e : enemies) {
-            if (e.isActive()) {
-                e.draw(batch);
-            }
+        // Draw player bullets
+        for (Bullet b : player.bullets) {
+            b.draw(batch);
         }
 
+        // Draw HUD
+        hudManager.render(batch, camera.position, player);
+
+        // Draw game over message if game is over
         if (gameOver) {
-            font.draw(batch, "GAME OVER - Press R to Restart", camera.position.x - 200, camera.position.y);
+            font.setColor(Color.WHITE);
+            font.draw(batch, "GAME OVER - Press R to restart", camera.position.x - 200, camera.position.y);
         }
 
         batch.end();
+    }
+
+
+    @Override
+    public void render() {
+    	if (currentState != null) {
+            currentState.update();
+            currentState.render(batch);
+        }
     }
 
     @Override
